@@ -47,7 +47,7 @@ Known Issues:
   [List any known issues or limitations of the current implementation, if applicable.]
 
 License:
-  This project is licensed under the LICENSE.py. See the LICENSE file for details.
+  This project is licensed under the LICENSE. See the LICENSE file for details.
 
 Contact:  
   For any issues or inquiries, please contact Anand Maurya at anand6308anand@gamil.com.
