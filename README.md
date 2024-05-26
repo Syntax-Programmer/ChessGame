@@ -30,11 +30,6 @@ Basic summary of the code:
        3. Then we check for each created location that if moving there may cause check to our own king,
           if yes then we remove that square from the move address.
        4. We return the finally proccessed move address. Note: This address can be a empty list also.
-       Note:
-         1. The functions not associated to a class create the general address of the piece.
-         2. The class Attacked() checks if a provide square is attacked by any opponent piece.
-         3. The class MoveAddress() inherits from Attacked() and creates he final proccessed address.
-         4. The class MoveAddress() is inherited by class Main() which interfaces with the user.
   6. If move address created is a empty list then nothing shall happen.
   7. If move address cretated has squares then if then till the user does not click nothing will happen.
   8. If user clicked on a square that is in the move address then the respective piece moves there.
@@ -43,8 +38,12 @@ Basic summary of the code:
   11. If move address is made then we discard the previos one and begin displaying the new one.
 
 Important Points:
-  1. The functions in the Main.py file has global scope privileges.
-  2. No functions or method under any circumstance should have access to the global scope of Main.py.
+  1. The functions not associated to a class create the general address of the piece.
+  2. The class Attacked() checks if a provide square is attacked by any opponent piece.
+  3. The class MoveAddress() inherits from Attacked() and creates he final proccessed address.
+  4. The class MoveAddress() is inherited by class Main() which interfaces with the user.
+  5. The functions in the Main.py file has global scope privileges.
+  6. No functions or method under any circumstance should have access to the global scope of Main.py.
 
 Each function is tried and tested with every case possible.
 Still if any issuses persist please refer to the documentation or contact me.
