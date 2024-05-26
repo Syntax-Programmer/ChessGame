@@ -43,7 +43,7 @@ Important Points:
   3. The class MoveAddress() inherits from Attacked() and creates he final proccessed address.
   4. The class MoveAddress() is inherited by class Main() which interfaces with the user.
   5. The functions in the Main.py file has global scope privileges.
-  6. No functions or method under any circumstance should have access to the global scope of Main.py.
+  6. No functions or method of the Engine.py under any circumstance should have access to the global scope of Main.py.
 
 Each function is tried and tested with every case possible.
 Still if any issuses persist please refer to the documentation or contact me.
