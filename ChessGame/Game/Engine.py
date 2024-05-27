@@ -267,10 +267,10 @@ class Attacked:
             sq_coords=location_to_check, occupied_squares=self.occupied_squares
         )
         from_axial_attacking, from_quadrantal_attacking = (
-            (from_x_address[0], from_x_address[-1])
-            + (from_y_address[0], from_y_address[-1]),
-            (from_13_address[0], from_13_address[-1])
-            + (from_24_address[0], from_24_address[-1]),
+            ((from_x_address[0], from_x_address[-1]) if from_x_address else ())
+            + ((from_y_address[0], from_y_address[-1]) if from_y_address else ()),
+            ((from_13_address[0], from_13_address[-1]) if from_13_address else ())
+            + ((from_24_address[0], from_24_address[-1]) if from_24_address else ()),
         )
         return any(
             self.occupied_squares.get(locations)
