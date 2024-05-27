@@ -91,7 +91,88 @@ def MoveMarkerPlacer(move_address: List[Tuple[int, int] | None]) -> None:
                 (locations[1] * SCALING_RATIO) + OFFSET,
             ),
         )
+def CheckMateChecker(
+    move_count: int,
+) -> Tuple[bool | None, Literal["NoSide", "W", "B"]]:
+    """
+    Checks if the given side(move_count) is checkmated by opponent.
 
+    Args:
+        move_count: int : The move number currently going on.
+
+    Return:
+        Tuple[bool, str] : Returns [0]:False if no action, True if checkmated, None if stalemate.
+                            [1]: "NoSide" if no action, opponent side if checkmate, own side if stalemate.
+    """
+    own_color = "W" if move_count % 2 == 0 else "B"
+    opponent_color = "B" if own_color == "W" else "W"
+    # This address has all the move address of every piece.
+    # If this is non-empty means a move is possible and no checkmate or stalemate is possibles.
+    all_piece_move_address = []
+    # Going through all pieces.
+    # Here created a list slice to avoid KeysChangedDuringIteration error.
+    # The changing of keys is temporary and WILL revert back.
+    for piece_item in list(main.occupied_squares.items())[:]:
+        if piece_item[1][0] == own_color:
+            # Creating appropriate address and extending them to all_piece_move_address.
+            if piece_item[1][1:] == "Pawn":
+                all_piece_move_address.extend(
+                    main.PawnMoveAddress(
+                        piece_coords=piece_item[0], move_count=move_count
+                    )
+                )
+            elif piece_item[1][1:] == "Knight":
+                all_piece_move_address.extend(
+                    main.KnightMoveAddress(
+                        piece_coords=piece_item[0], move_count=move_count
+                    )
+                )
+            elif piece_item[1][1:] == "King":
+                all_piece_move_address.extend(
+                    main.KingMoveAddress(
+                        piece_coords=piece_item[0], move_count=move_count
+                    )
+                )
+            elif piece_item[1][1:] == "Rook":
+                all_piece_move_address.extend(
+                    main.SlidingMoveAddress(
+                        piece_coords=piece_item[0],
+                        move_count=move_count,
+                        piece_type="Ax",
+                    )
+                )
+            elif piece_item[1][1:] == "Bishop":
+                all_piece_move_address.extend(
+                    main.SlidingMoveAddress(
+                        piece_coords=piece_item[0],
+                        move_count=move_count,
+                        piece_type="Qu",
+                    )
+                )
+            elif piece_item[1][1:] == "Queen":
+                all_piece_move_address.extend(
+                    main.SlidingMoveAddress(
+                        piece_coords=piece_item[0],
+                        move_count=move_count,
+                        piece_type="Ax",
+                    )
+                    + main.SlidingMoveAddress(
+                        piece_coords=piece_item[0],
+                        move_count=move_count,
+                        piece_type="Qu",
+                    )
+                )
+        # If all_piece_move_address is even filled with 1 location then no checkmate or stalemate.
+        # This breaks as soon as one location is found saving computation.
+        if all_piece_move_address:
+            return (False, "NoSide")
+    # If no movable locations are found then.
+    if not all_piece_move_address:
+        # If no piece can move and king is in check then checkmate.
+        if main.IsOwnKingAttacked(move_count=move_count):
+            return (True, opponent_color)
+        # Else stalemate.
+        return (None, own_color)
 
 main = Main()
 
@@ -103,12 +184,17 @@ board_img = pygame.transform.scale(board_img, (WIDTH, HEIGHT))
 
 timer = pygame.time.Clock()
 FPS = 120
+
+FONT_TYPE = pygame.font.Font("Assets\\Font\\JetBrainsMono.ttf", 75)
+FONT_POS = 250, 350
+
 BLACK = (0, 0, 0)
 
-running = True
+game_continue = True
 mouse_grid_pos = -1, -1
-moving_data = []
-while running:
+piece_that_has_to_move_data = []
+check_mate_item = (False, "NoSide")
+while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -119,41 +205,58 @@ while running:
     screen.fill(BLACK)
     screen.blit(board_img, (0, 0))
     # If the user has clicked for on a valid piece and the possible move have been created.
-    if main.move_address:
+    if main.move_address and game_continue:
         # Checks if the click is in move_address meaning the move is to be performed.
         if mouse_grid_pos in main.move_address:
-            main.occupied_squares.pop(moving_data[0])
-            main.occupied_squares.update({mouse_grid_pos: moving_data[1]})
+            main.occupied_squares.pop(piece_that_has_to_move_data[0])
+            main.occupied_squares.update(
+                {mouse_grid_pos: piece_that_has_to_move_data[1]}
+            )
             main.move_address = []
-            moving_data = []
+            piece_that_has_to_move_data = []
             mouse_grid_pos = -1, -1
             # If the move has been done then turn change
             main.move_count += 1
+            check_mate_item = CheckMateChecker(move_count=main.move_count)
         # If the user has not performed a move but has clicked a square.
-        elif mouse_grid_pos != moving_data[0]:
+        elif mouse_grid_pos != piece_that_has_to_move_data[0]:
             # We redo the logic to check if the new pos the user has clicked is a valid piece.
             # This creates the new move address if the same side piece is clicked.
             main.Logic(mouse_grid_pos=mouse_grid_pos)
             # If move address gets created then we remake the move data and move the piece in the next iteration.
             if main.move_address:
-                moving_data = [mouse_grid_pos, main.occupied_squares[mouse_grid_pos]]
+                piece_that_has_to_move_data = [
+                    mouse_grid_pos,
+                    main.occupied_squares[mouse_grid_pos],
+                ]
             # If no move address is created that is no valid movable piece is clicked then the conditions reset and
             # we again wait for a click
             else:
                 main.move_address = []
-                moving_data = []
+                piece_that_has_to_move_data = []
                 mouse_grid_pos = -1, -1
-    elif not main.move_address:
+    elif not main.move_address and game_continue:
         main.Logic(mouse_grid_pos=mouse_grid_pos)
         if main.move_address:
-            moving_data = [mouse_grid_pos, main.occupied_squares[mouse_grid_pos]]
+            piece_that_has_to_move_data = [
+                mouse_grid_pos,
+                main.occupied_squares[mouse_grid_pos],
+            ]
         else:
-            moving_data = []
+            piece_that_has_to_move_data = []
     # These place the pieces and their move markers.
     PieceImagePlacer(
         loaded_images=main.loaded_images, occupied_squares=main.occupied_squares
     )
     MoveMarkerPlacer(move_address=main.move_address)
+    if check_mate_item[0] is None:
+        msg = FONT_TYPE.render("Draw due to Stalemate", False, (0, 0, 0))
+        screen.blit(msg, FONT_POS)
+        game_continue = False
+    elif check_mate_item[0]:
+        msg = FONT_TYPE.render(f"{check_mate_item[1]} WINS!", False, (0, 0, 0))
+        screen.blit(msg, FONT_POS)
+        game_continue = False
     pygame.display.flip()
     timer.tick(FPS)
 
