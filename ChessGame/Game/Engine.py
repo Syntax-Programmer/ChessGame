@@ -266,6 +266,7 @@ class Attacked:
         from_13_address, from_24_address = QuadrantalAddress(
             sq_coords=location_to_check, occupied_squares=self.occupied_squares
         )
+        # The if-else used to correct the indexation error in empty address(if empty address was created).
         from_axial_attacking, from_quadrantal_attacking = (
             ((from_x_address[0], from_x_address[-1]) if from_x_address else ())
             + ((from_y_address[0], from_y_address[-1]) if from_y_address else ()),
