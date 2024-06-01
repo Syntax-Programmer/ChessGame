@@ -1,63 +1,88 @@
-import pygame
-import pygame.locals
+"""
+This is the main game file that hosts the game 
+
+Author: Anand Maurya
+Github: Syntax-Programmer
+Email: anand6308anand@gmail.com
+"""
+
+__author__ = "Anand Maurya/ Syntax-Programmer"
+__email__ = "anand6308anand@gmail.com"
+
+
 from sys import exit
 from Engine import Main
-from typing import Tuple, Dict, List
+from typing import List, Tuple, Literal, Dict
+
+import pygame
+import pygame.locals
+import AssetsLoader
 
 
-def MouseToGridConverter(mouse_pos: Tuple[int, int]) -> Tuple[int, int]:
+pygame.init()
+main = Main()
+
+
+INT_RANGE = Literal[0, 1, 2, 3, 4, 5, 6, 7]
+
+
+def mouse_pos_to_square_mapper(
+    mouse_pos: Tuple[int, int]
+) -> Tuple[INT_RANGE, INT_RANGE]:
     """
-    Converts the random pos of the user click to represent a particular square.
+    Maps the user click to a square on the board.
 
-    Args:
-        mouse_pos:Tuple[int,int] : The coords of the user's clicks.
+    Takes the random click pos on the screen and maps it to an square coordinate
+    corresponding to a square.
 
-    Return:
-        Tuple[int,int] : The user click associated to a square.
-        For eg :
-        (150, 101) -> (1, 1), (714, 222) -> (7, 2)
+    Parameters:
+    ----------
+    1. mouse_pos : Tuple[int, int]
+        The location of the user click.
+
+    Returns:
+    -------
+    Tuple[INT_RANGE, INT_RANGE] :
+        The click coordinates mapped to a square on the chess board.
     """
     x_pos = (mouse_pos[0] - mouse_pos[0] % 100) // 100
     y_pos = (mouse_pos[1] - mouse_pos[1] % 100) // 100
     return x_pos, y_pos
 
 
-pygame.init()
-
-
-def PieceImagePlacer(
-    loaded_images, occupied_squares: Dict[Tuple[int, int], str]
+def piece_image_renderer(
+    occupied_squares: Dict[Tuple[int, int], str],
+    move_list: List[Tuple[int, int] | None],
 ) -> None:
+    global screen
     """
-    Places all the piece images on the correct place.
+    Places all the piece related images on the board.
 
-    Args:
-        loaded_img: List[Surface] : List of all piece images.
-        occupied_squares: Dict[Tuple[int, int], str] : Dictionary where occupied squares are
-        mapped to piece on them.
+    Takes occupied_squares to determine what pieces should be on the board and
+    move_list for the locations to mark as movable.
 
-    Return:
-        None : None
+    Parameters:
+    ----------
+    1. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+    2. move_list : List[Tuple[INT_RANGE, INT_RANGE] | None]
+        The locations of possible movable locations of a given piece.
     """
-    MAPPING_TABLE = {
-        "WPawn": 0,
-        "WRook": 1,
-        "WKnight": 2,
-        "WBishop": 3,
-        "WQueen": 4,
-        "WKing": 5,
-        "BPawn": 6,
-        "BRook": 7,
-        "BKnight": 8,
-        "BBishop": 9,
-        "BQueen": 10,
-        "BKing": 11,
-    }
     SCALING_RATIO = 100
     OFFSET = 17
-    for locations, piece_type in occupied_squares.items():
+    for piece_location, piece_type in occupied_squares.items():
         screen.blit(
-            loaded_images[MAPPING_TABLE[piece_type]],
+            AssetsLoader.LOADED_IMAGES[
+                AssetsLoader.PIECE_TYPE_TO_INDEX_TABLE[piece_type]
+            ],
+            (
+                (piece_location[0] * SCALING_RATIO) + OFFSET,
+                (piece_location[1] * SCALING_RATIO) + OFFSET,
+            ),
+        )
+    for locations in move_list:
+        screen.blit(
+            AssetsLoader.move_maker,
             (
                 (locations[0] * SCALING_RATIO) + OFFSET,
                 (locations[1] * SCALING_RATIO) + OFFSET,
@@ -65,199 +90,215 @@ def PieceImagePlacer(
         )
 
 
-move_marker = pygame.image.load("Assets\\MoveMarker.png")
-move_marker = pygame.transform.scale(move_marker, (70, 70))
-
-
-def MoveMarkerPlacer(move_address: List[Tuple[int, int] | None]) -> None:
+def game_state_determiner(move_count: int) -> Tuple[int, str]:
     """
-    Marks all the places the respective piece can move to.
+    Determines the effect of the last move on the game-state.
 
-    Args:
-        move_address: List[Tuple[int,int] | None] : All the possible locations a
-        piece can move to.
+    Takes the move_number just after it has been incremented by 1 to check if the other side is
+    in checkmate or stalemate.
 
-    Return:
-        None : None
-    """
-    SCALING_RATIO = 100
-    OFFSET = 15
-    marker = move_marker
-    for locations in move_address:
-        screen.blit(
-            marker,
-            (
-                (locations[0] * SCALING_RATIO) + OFFSET,
-                (locations[1] * SCALING_RATIO) + OFFSET,
-            ),
-        )
-def CheckMateChecker(
-    move_count: int,
-) -> Tuple[bool | None, Literal["NoSide", "W", "B"]]:
-    """
-    Checks if the given side(move_count) is checkmated by opponent.
+    Parameters:
+    ----------
+    1. move_count : int
+            The move number going on.
 
-    Args:
-        move_count: int : The move number currently going on.
-
-    Return:
-        Tuple[bool, str] : Returns [0]:False if no action, True if checkmated, None if stalemate.
-                            [1]: "NoSide" if no action, opponent side if checkmate, own side if stalemate.
+    Returns:
+    -------
+    Tuple[int,str] :
+        The tuple contains the game_state_code and the appropriate side.
+        Codes:
+            0 : Normal
+            1 : Checkmate
+            2 : Stalemate
     """
     own_color = "W" if move_count % 2 == 0 else "B"
     opponent_color = "B" if own_color == "W" else "W"
-    # This address has all the move address of every piece.
-    # If this is non-empty means a move is possible and no checkmate or stalemate is possibles.
-    all_piece_move_address = []
-    # Going through all pieces.
-    # Here created a list slice to avoid KeysChangedDuringIteration error.
-    # The changing of keys is temporary and WILL revert back.
-    for piece_item in list(main.occupied_squares.items())[:]:
-        if piece_item[1][0] == own_color:
-            # Creating appropriate address and extending them to all_piece_move_address.
-            if piece_item[1][1:] == "Pawn":
-                all_piece_move_address.extend(
-                    main.PawnMoveAddress(
-                        piece_coords=piece_item[0], move_count=move_count
-                    )
-                )
-            elif piece_item[1][1:] == "Knight":
-                all_piece_move_address.extend(
-                    main.KnightMoveAddress(
-                        piece_coords=piece_item[0], move_count=move_count
-                    )
-                )
-            elif piece_item[1][1:] == "King":
-                all_piece_move_address.extend(
-                    main.KingMoveAddress(
-                        piece_coords=piece_item[0], move_count=move_count
-                    )
-                )
-            elif piece_item[1][1:] == "Rook":
-                all_piece_move_address.extend(
-                    main.SlidingMoveAddress(
-                        piece_coords=piece_item[0],
-                        move_count=move_count,
-                        piece_type="Ax",
-                    )
-                )
-            elif piece_item[1][1:] == "Bishop":
-                all_piece_move_address.extend(
-                    main.SlidingMoveAddress(
-                        piece_coords=piece_item[0],
-                        move_count=move_count,
-                        piece_type="Qu",
-                    )
-                )
-            elif piece_item[1][1:] == "Queen":
-                all_piece_move_address.extend(
-                    main.SlidingMoveAddress(
-                        piece_coords=piece_item[0],
-                        move_count=move_count,
-                        piece_type="Ax",
-                    )
-                    + main.SlidingMoveAddress(
-                        piece_coords=piece_item[0],
-                        move_count=move_count,
-                        piece_type="Qu",
-                    )
-                )
-        # If all_piece_move_address is even filled with 1 location then no checkmate or stalemate.
+    for piece_location, piece_type in list(main.occupied_squares.items())[:]:
+        movable_location = []
+        if piece_type[0] == own_color:
+            movable_location = main.move_list_mapping_table[piece_type[1:]](
+                location=piece_location, move_count=move_count
+            )
+        # If movable_location is even filled with 1 location then no checkmate or stalemate.
         # This breaks as soon as one location is found saving computation.
-        if all_piece_move_address:
-            return (False, "NoSide")
-    # If no movable locations are found then.
-    if not all_piece_move_address:
-        # If no piece can move and king is in check then checkmate.
-        if main.IsOwnKingAttacked(move_count=move_count):
-            return (True, opponent_color)
-        # Else stalemate.
-        return (None, own_color)
+        if movable_location:
+            return (0, "NoSide")
+    # If no piece can move and king is in check then checkmate.
+    if main.is_own_king_attacked(move_count=move_count):
+        return (1, opponent_color)
+    # Else stalemate.
+    return (2, own_color)
 
-main = Main()
 
-WIDTH, HEIGHT = 800, 800
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+def castling_rights_manager(
+    piece_that_has_to_move: Tuple[Tuple[INT_RANGE, INT_RANGE], str]
+) -> None:
+    """
+    Cancels the appropriate castling rights.
+
+    Cancels the rights if the king or rook of one side moves.
+
+    Parameters:
+    ----------
+    1. piece_that_has_to_be_moved : Tuple[Tuple[INT_RANGE, INT_RANGE] | None, str | None]
+        A empty list if no piece has to be moved else a [location, piece_type] item.
+    """
+    if piece_that_has_to_move[1] == "WKing":
+        main.white_long_castle = main.white_short_castle = False
+    elif piece_that_has_to_move[1] == "BKing":
+        main.black_long_castle = main.black_short_castle = False
+    elif piece_that_has_to_move[1] == "WRook":
+        if piece_that_has_to_move[0] == (0, 7):
+            main.white_long_castle = False
+        elif piece_that_has_to_move[0] == (7, 7):
+            main.white_short_castle = False
+    elif piece_that_has_to_move[1] == "BRook":
+        if piece_that_has_to_move[0] == (0, 0):
+            main.black_long_castle = False
+        elif piece_that_has_to_move[0] == (7, 0):
+            main.black_short_castle = False
+
+
+def castle_rook_mover(
+    move_count: int,
+    mouse_grid_pos: Tuple[INT_RANGE, INT_RANGE],
+    piece_that_has_to_move: Tuple[Tuple[INT_RANGE, INT_RANGE], str],
+) -> None:
+    row = 7 if move_count % 2 == 0 else 0
+    own_color = "W" if move_count % 2 == 0 else "B"
+    if piece_that_has_to_move[1][1:] != "King" or mouse_grid_pos not in [
+        (6, row),
+        (2, row),
+    ]:
+        return None
+    if mouse_grid_pos == (6, row):
+        main.occupied_squares.pop((7, row))
+        main.occupied_squares[(5, row)] = f"{own_color}Rook"
+    elif mouse_grid_pos == (2, row):
+        main.occupied_squares.pop((0, row))
+        main.occupied_squares[(3, row)] = f"{own_color}Rook"
+    if own_color == "W":
+        main.white_long_castle = main.white_short_castle = False
+    elif own_color == "B":
+        main.black_long_castle = main.black_short_castle = False
+
+
+def playing_logic(
+    mouse_grid_pos: Tuple[INT_RANGE, INT_RANGE],
+    piece_that_has_to_move: Tuple[Tuple[INT_RANGE, INT_RANGE] | None, str | None],
+) -> Tuple[
+    Tuple[INT_RANGE | Literal[-1], INT_RANGE | Literal[-1]],
+    Tuple[Tuple[INT_RANGE, INT_RANGE] | None, str | None],
+]:
+    """
+    The main logic of moving the pieces and checking for checkmates/stalemates.
+
+    Takes the user click square and the piece that can be move currently and takes appropriate actions.
+
+    Parameters:
+    ----------
+    1. mouse_grid_pos : Tuple[INT_RANGE, INT_RANGE]
+        The location of the user click mapped to a square.
+    2. piece_that_has_to_be_moved : Tuple[Tuple[INT_RANGE, INT_RANGE] | None, str | None]
+        A empty list if no piece has to be moved else a [location, piece_type] item.
+
+    Returns:
+    -------
+    Tuple[
+    Tuple[INT_RANGE | Literal[-1], INT_RANGE | Literal[-1]],
+    Tuple[int, str],
+    Tuple[Tuple[INT_RANGE, INT_RANGE] | None, str | None],
+    ] :
+        The updated versions of the arguments passed like :
+        (mouse_grid_pos, game_state_data, piece_that_has_to_move)
+    """
+    game_state_data = (0, "NoSide")
+    if main.move_list:
+        # If move_list exists and user want to move.
+        if mouse_grid_pos in main.move_list:
+            main.occupied_squares.pop(piece_that_has_to_move[0])
+            main.occupied_squares[mouse_grid_pos] = piece_that_has_to_move[1]
+            castle_rook_mover(
+                move_count=main.move_count,
+                mouse_grid_pos=mouse_grid_pos,
+                piece_that_has_to_move=piece_that_has_to_move,
+            )
+            castling_rights_manager(piece_that_has_to_move=piece_that_has_to_move)
+            main.move_list = piece_that_has_to_move = []
+            mouse_grid_pos = -1, -1
+            main.move_count += 1
+            game_state_data = game_state_determiner(move_count=main.move_count)
+        # When user click pos is not somewhere moveable and also that the user has clicked somewhere after clicking the piece to move.
+        elif mouse_grid_pos != piece_that_has_to_move[0]:
+            main.logic(mouse_grid_pos=mouse_grid_pos)
+            if main.move_list:
+                piece_that_has_to_move = [
+                    mouse_grid_pos,
+                    main.occupied_squares[mouse_grid_pos],
+                ]
+            else:
+                piece_that_has_to_move = []
+                mouse_grid_pos = -1, -1
+    # If no move_list exists meaning we have to check for user input.
+    else:
+        main.logic(mouse_grid_pos=mouse_grid_pos)
+        if main.move_list:
+            piece_that_has_to_move = [
+                mouse_grid_pos,
+                main.occupied_squares[mouse_grid_pos],
+            ]
+        else:
+            piece_that_has_to_move = []
+
+    return mouse_grid_pos, game_state_data, piece_that_has_to_move
+
+
+SCREEN_SIZE = 800, 800
+screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.display.set_caption("Chess Game")
-board_img = pygame.image.load("Assets\\BoardImg.png")
-board_img = pygame.transform.scale(board_img, (WIDTH, HEIGHT))
 
 timer = pygame.time.Clock()
 FPS = 120
 
-FONT_TYPE = pygame.font.Font("Assets\\Font\\JetBrainsMono.ttf", 75)
-FONT_POS = 250, 350
+FONT_TYPE = pygame.font.Font("Assets\\Font\\JetBrainsMono.ttf", 50)
 
 BLACK = (0, 0, 0)
+BOARD_IMG_POS = 0, 0
 
-game_continue = True
 mouse_grid_pos = -1, -1
-piece_that_has_to_move_data = []
-check_mate_item = (False, "NoSide")
+piece_that_has_to_move = []
+# game_state_data[0] == 0 : Game should continue as normal.
+# game_state_data[0] == 1 : Check-mate delivered game ended.
+# game_state_data[0] == 2 : Game ended due to stalemate.
+game_state_data = (0, "NoSide")
+game_playing = True
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_grid_pos = MouseToGridConverter(mouse_pos=pygame.mouse.get_pos())
-    # Resetting the screen before new data is filled in.
-    screen.fill(BLACK)
-    screen.blit(board_img, (0, 0))
-    # If the user has clicked for on a valid piece and the possible move have been created.
-    if main.move_address and game_continue:
-        # Checks if the click is in move_address meaning the move is to be performed.
-        if mouse_grid_pos in main.move_address:
-            main.occupied_squares.pop(piece_that_has_to_move_data[0])
-            main.occupied_squares.update(
-                {mouse_grid_pos: piece_that_has_to_move_data[1]}
+            mouse_grid_pos = mouse_pos_to_square_mapper(
+                mouse_pos=pygame.mouse.get_pos()
             )
-            main.move_address = []
-            piece_that_has_to_move_data = []
-            mouse_grid_pos = -1, -1
-            # If the move has been done then turn change
-            main.move_count += 1
-            check_mate_item = CheckMateChecker(move_count=main.move_count)
-        # If the user has not performed a move but has clicked a square.
-        elif mouse_grid_pos != piece_that_has_to_move_data[0]:
-            # We redo the logic to check if the new pos the user has clicked is a valid piece.
-            # This creates the new move address if the same side piece is clicked.
-            main.Logic(mouse_grid_pos=mouse_grid_pos)
-            # If move address gets created then we remake the move data and move the piece in the next iteration.
-            if main.move_address:
-                piece_that_has_to_move_data = [
-                    mouse_grid_pos,
-                    main.occupied_squares[mouse_grid_pos],
-                ]
-            # If no move address is created that is no valid movable piece is clicked then the conditions reset and
-            # we again wait for a click
-            else:
-                main.move_address = []
-                piece_that_has_to_move_data = []
-                mouse_grid_pos = -1, -1
-    elif not main.move_address and game_continue:
-        main.Logic(mouse_grid_pos=mouse_grid_pos)
-        if main.move_address:
-            piece_that_has_to_move_data = [
-                mouse_grid_pos,
-                main.occupied_squares[mouse_grid_pos],
-            ]
-        else:
-            piece_that_has_to_move_data = []
-    # These place the pieces and their move markers.
-    PieceImagePlacer(
-        loaded_images=main.loaded_images, occupied_squares=main.occupied_squares
+    if game_playing:
+        mouse_grid_pos, game_state_data, piece_that_has_to_move = playing_logic(
+            mouse_grid_pos=mouse_grid_pos, piece_that_has_to_move=piece_that_has_to_move
+        )
+    screen.fill(BLACK)
+    screen.blit(AssetsLoader.board_image, BOARD_IMG_POS)
+    piece_image_renderer(
+        occupied_squares=main.occupied_squares, move_list=main.move_list
     )
-    MoveMarkerPlacer(move_address=main.move_address)
-    if check_mate_item[0] is None:
+
+    if game_state_data[0] == 2:
         msg = FONT_TYPE.render("Draw due to Stalemate", False, (0, 0, 0))
-        screen.blit(msg, FONT_POS)
-        game_continue = False
-    elif check_mate_item[0]:
-        msg = FONT_TYPE.render(f"{check_mate_item[1]} WINS!", False, (0, 0, 0))
-        screen.blit(msg, FONT_POS)
-        game_continue = False
+        screen.blit(msg, (100, 350))
+        game_playing = False
+    elif game_state_data[0] == 1:
+        msg = FONT_TYPE.render(f"{game_state_data[1]} WINS!", False, (0, 0, 0))
+        screen.blit(msg, (300, 350))
+        game_playing = False
+
     pygame.display.flip()
     timer.tick(FPS)
-
-pygame.quit()
