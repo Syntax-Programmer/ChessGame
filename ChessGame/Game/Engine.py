@@ -1,542 +1,826 @@
-import pygame
-from typing import Tuple, List, Dict, Literal
+"""
+This module handles the creation of the all possible moveable
+locations of a piece and checking for attacks from opponent pieces 
+on any square.
+
+Author: Anand Maurya
+Github: Syntax-Programmer
+Email: anand6308anand@gmail.com
+"""
+
+__author__ = "Anand Maurya/ Syntax-Programmer"
+__email__ = "anand6308anand@gmail.com"
 
 
-def PawnAddress(
-    sq_coords: Tuple[int, int], move_count: int
-) -> Tuple[List[Tuple[int, int] | None], List[Tuple[int, int] | None]]:
+from typing import List, Tuple, Dict, Literal
+
+
+INT_RANGE = Literal[0, 1, 2, 3, 4, 5, 6, 7]
+
+
+def pawn_address(
+    sq_index: Tuple[INT_RANGE, INT_RANGE], move_count: int
+) -> Tuple[
+    List[Tuple[INT_RANGE, INT_RANGE] | None], List[Tuple[INT_RANGE, INT_RANGE] | None]
+]:
     """
-    Gives the general locations of a pawn movement.
+    Creates a general movable locations of a pawn.
 
-    Args:
-        sq_coords: Tuple[int, int] : A location on the board.
-        move_count: int : The move number currently going on.
+    Takes in a sq_index and creates all possible locations a pawn on that given sq_index can move to.\n
+    OR\n
+    An opponent pawn on the created locations can attack the provided sq_index.
 
-    Return:
-        Tuple[List[Tuple[int, int] | None], List[Tuple[int, int] | None]] :
-        Gives all the possible moves of a pawn separated into 2 lists:
-        1. Locations a pawn on given sq_coord can move to.
-        2. Locations a pawn on given sq_coords can capture to OR a opponent pawn on
-        produced locations can attack given sq_coords.
+    Parameters:
+    ----------
+    1. sq_index : Tuple[INT_RANGE, INT_RANGE]
+        A location on the board w.r.t the address is to be made.
+    2. move_count : int
+        The move number going on.
+
+    Returns:
+    -------
+    Tuple[\n
+    List[Tuple[INT_RANGE, INT_RANGE] | None], \n
+    List[Tuple[INT_RANGE, INT_RANGE] | None]\n
+    ] :\n
+        Creates two lists :\n
+        1. List1 : A pawn on the provided sq_index can move to.\n
+        2. List2 : A pawn on the provided sq_index can capture an opponent piece to,\n
+                OR\n
+                An opponent pawn on the created locations can attack the provided sq_index.
     """
-    moving_direction = -1 if move_count % 2 == 0 else 1
+    movement_direction = -1 if move_count % 2 == 0 else 1
     moving_address = [
-        (sq_coords[0], sq_coords[1] + (step * moving_direction))
+        (sq_index[0], sq_index[1] + (step * movement_direction))
         for step in [1, 2]
-        if sq_coords[1] + (step * moving_direction) in range(8)
+        if sq_index[1] + (step * movement_direction) in range(8)
     ]
     capturing_address = [
-        (sq_coords[0] + step, sq_coords[1] + moving_direction)
+        (sq_index[0] + step, sq_index[1] + movement_direction)
         for step in [1, -1]
-        if sq_coords[0] + step in range(8)
-        and sq_coords[1] + moving_direction in range(8)
+        if sq_index[0] + step in range(8)
+        and sq_index[1] + movement_direction in range(8)
     ]
     return moving_address, capturing_address
 
 
-def KnightAddress(sq_coords: Tuple[int, int]) -> List[Tuple[int, int] | None]:
+def knight_address(
+    sq_index: Tuple[INT_RANGE, INT_RANGE]
+) -> List[Tuple[INT_RANGE, INT_RANGE]]:
     """
-    Gives the general locations of a knight movement.
+    Creates a general movable locations of a knight.
 
-    Args:
-        sq_coords: Tuple[int, int] : A location on the board.
+    Takes in a sq_index and creates all possible locations a knight on that given sq_index can move to.\n
+    OR\n
+    An opponent knight on the created locations can attack the provided sq_index.
 
-    Return:
-        List[Tuple[int, int] | None] : Gives all the locations where:
-        1. A knight on given sq_coord can move to.
-        2. A opponent knight on produced locations can attack the given sq_coords.
-    """
-    address = [
-        (sq_coords[0] + x_step, sq_coords[1] + y_step)
-        for x_step, y_step in [
-            (2, 1),
-            (2, -1),
-            (-2, 1),
-            (-2, -1),
-            (1, 2),
-            (-1, 2),
-            (1, -2),
-            (-1, -2),
-        ]
-        if sq_coords[0] + x_step in range(8) and sq_coords[1] + y_step in range(8)
-    ]
-    return address
+    Parameters:
+    ----------
+    1. sq_index : Tuple[INT_RANGE, INT_RANGE]
+        A location on the board w.r.t the address is to be made.
 
-
-def KingAddress(sq_coords: Tuple[int, int]) -> List[Tuple[int, int] | None]:
-    """
-    Gives the general locations of a king movement.
-
-    Args:
-        sq_coords: Tuple[int, int] : A location on the board.
-
-    Return:
-        List[Tuple[int, int] | None] : Gives all the locations where:
-        1. A king on given sq_coord can move to.
-        2. A opponent king on produced locations can attack the given sq_coords.
+    Returns:
+    -------
+    List[Tuple[INT_RANGE, INT_RANGE]] :
+        Creates general move list where a knight on provided sq_index can move to.\n
+        OR\n
+        An opponent knight on the created squares can attack the given sq_index.
     """
     address = [
-        (sq_coords[0] + x_step, sq_coords[1] + y_step)
-        for x_step, y_step in [
-            (1, 0),
-            (-1, 0),
-            (0, 1),
-            (0, -1),
-            (1, -1),
-            (-1, -1),
-            (-1, 1),
-            (1, 1),
-        ]
-        if sq_coords[0] + x_step in range(8) and sq_coords[1] + y_step in range(8)
+        (sq_index[0] + 2, sq_index[1] + 1),
+        (sq_index[0] + 2, sq_index[1] - 1),
+        (sq_index[0] - 2, sq_index[1] + 1),
+        (sq_index[0] - 2, sq_index[1] - 1),
+        (sq_index[0] + 1, sq_index[1] + 2),
+        (sq_index[0] - 1, sq_index[1] + 2),
+        (sq_index[0] + 1, sq_index[1] - 2),
+        (sq_index[0] - 1, sq_index[1] - 2),
     ]
-    return address
+    return list(
+        filter(
+            lambda locations: locations[0] in range(8) and locations[1] in range(8),
+            address,
+        )
+    )
 
 
-def SlidingAddressFilter(
-    to_filter: List[Tuple[int, int]],
-    occupied_squares: Dict[Tuple[int, int], str],
-    address_constructor: Tuple[int, int],
-) -> List[Tuple[int, int]]:
+def king_address(
+    sq_index: Tuple[INT_RANGE, INT_RANGE]
+) -> List[Tuple[INT_RANGE, INT_RANGE]]:
     """
-    Filter the general sliding piece address to only have squares that
-    the sliding piece on address_constructor can reach.
+    Creates a general movable locations of a king.
 
-    Args:
-        to_filter: List[Tuple[int, int]] : An address of the sliding piece that needs to be filtered.
-        occupied_square: Dict[Tuple[int, int], str] : The dictionary containing all
-        the occupied squares on the board mapped to the piece type.
-        address_constructor: Tuple[int,int] : A location on the board w.r.t the to_filter was made.
+    Takes in a sq_index and creates all possible locations a king on that given sq_index can move to.\n
+    OR\n
+    An opponent king on the created locations can attack the provided sq_index.
 
-    Return:
-        List[Tuple[int,int]] : Gives a filtered list of squares a sliding piece can
-        theoretically reach.
+    Parameters:
+    ----------
+    1. sq_index : Tuple[INT_RANGE, INT_RANGE]
+        A location on the board w.r.t the address is to be made.
+
+    Returns:
+    -------
+    List[Tuple[INT_RANGE, INT_RANGE]] :
+        Creates general move list where a king on provided sq_index can move to.\n
+        OR\n
+        An opponent king on the created squares can attack the given sq_index.
     """
-    constructor_index = to_filter.index(tuple(address_constructor))
-    left_address = to_filter[:constructor_index]
+    address = [
+        (sq_index[0] + 1, sq_index[1]),
+        (sq_index[0] - 1, sq_index[1]),
+        (sq_index[0], sq_index[1] + 1),
+        (sq_index[0], sq_index[1] - 1),
+        (sq_index[0] + 1, sq_index[1] - 1),
+        (sq_index[0] - 1, sq_index[1] - 1),
+        (sq_index[0] - 1, sq_index[1] + 1),
+        (sq_index[0] + 1, sq_index[1] + 1),
+    ]
+    return list(
+        filter(
+            lambda locations: locations[0] in range(8) and locations[1] in range(8),
+            address,
+        )
+    )
+
+
+def sliding_address_filter(
+    constructor: Tuple[INT_RANGE, INT_RANGE],
+    to_filter: List[Tuple[INT_RANGE, INT_RANGE]],
+    occupied_squares: Dict[Tuple[INT_RANGE, INT_RANGE], str],
+) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
+    """
+    Filter the given general address of a sliding piece.
+
+    Takes in a generally made sliding address and restricts it to only those squares
+    that the piece on the provided constructor can move to.
+
+    Parameters:
+    ----------
+    1. constructor : Tuple[INT_RANGE, INT_RANGE]
+        A location on the board w.r.t the address was made.
+    2. to_filter : List[Tuple[INT_RANGE, INT_RANGE]]
+        A address that was made w.r.t constructor and is to be filtered.
+    3. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+
+    Returns:
+    -------
+    List[Tuple[INT_RANGE, INT_RANGE]] :
+        The filtered address only containing the reachable squares
+    """
     left_reach_index = 0
-    right_address = to_filter[constructor_index + 1 :]
-    right_reach_index = 8
-    for locations in left_address[::-1]:
-        if locations in occupied_squares:
-            left_reach_index = to_filter.index(locations)
-            break
-    for locations in right_address:
-        if locations in occupied_squares:
-            right_reach_index = to_filter.index(locations)
+    right_reach_index = len(to_filter) - 1
+    constructor_index = to_filter.index(constructor)
+    for indices in range(len(to_filter)):
+        if indices < constructor_index and to_filter[indices] in occupied_squares:
+            left_reach_index = indices
+        if indices > constructor_index and to_filter[indices] in occupied_squares:
+            right_reach_index = indices
+            # Because we need the first occurrence of a piece to the right of the gives constructor.
             break
     to_filter = to_filter[left_reach_index : right_reach_index + 1]
-    # Removing address_constructor because the sliding piece on the address_constructor can't move to its own location.
-    # It was causing error with the AttackedBySlidingPiece.
-    to_filter.remove(tuple(address_constructor))
+    # Because a piece can't move to it's own location.
+    to_filter.remove(constructor)
     return to_filter
 
 
-def AxialAddress(
-    sq_coords: Tuple[int, int], occupied_squares: Dict[Tuple[int, int], str]
-) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+def straight_sliding_address(
+    sq_index: Tuple[INT_RANGE, INT_RANGE],
+    occupied_squares: Dict[Tuple[INT_RANGE, INT_RANGE], str],
+) -> Tuple[
+    List[Tuple[INT_RANGE, INT_RANGE] | None], List[Tuple[INT_RANGE, INT_RANGE] | None]
+]:
     """
-    Gives the general locations of a rook/queen movement.
+    Creates a general movable locations of a rook/queen.
 
-    Args:
-        sq_coords: Tuple[int, int] : A location on the board.
-        occupied_square: Dict[Tuple[int, int], str] : The dictionary containing all
-        the occupied squares on the board mapped to the piece type.
+    Takes in a sq_index and creates all possible locations a rook/queen on that given sq_index can move to.\n
+    OR\n
+    An opponent rook/queen on the created locations can attack the provided sq_index.
 
-    Return:
-        Tuple[List[Tuple[int, int] | None], List[Tuple[int, int] | None]] : Gives 2 lists:
-        1. All locations on the same row as the given sq_coords
-        where a rook/queen CAN REACH.
-        2. All locations on the same col as the given sq_coords
-        where a rook/queen CAN REACH.
+    Parameters:
+    ----------
+    1. sq_index : Tuple[INT_RANGE, INT_RANGE]
+        A location on the board w.r.t the address is to be made.
+    2. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+
+    Returns:
+    -------
+    Tuple[
+    List[Tuple[INT_RANGE, INT_RANGE] | None], List[Tuple[INT_RANGE, INT_RANGE] | None]
+    ] :\n
+        Creates two lists :\n
+        1. List1 : All the reachable squares in the same row as the rook/queen.\n
+                OR\n
+                An opponent rook/queen on the created locations can attack the provided sq_index.\n
+        2. List2 : All the reachable squares in the same col as the rook/queen.\n
+                OR\n
+                An opponent rook/queen on the created locations can attack the provided sq_index.
     """
-    x_address = [(x_pos, sq_coords[1]) for x_pos in range(8)]
-    y_address = [(sq_coords[0], y_pos) for y_pos in range(8)]
-    return SlidingAddressFilter(
-        to_filter=x_address,
-        occupied_squares=occupied_squares,
-        address_constructor=sq_coords,
-    ), SlidingAddressFilter(
-        to_filter=y_address,
-        occupied_squares=occupied_squares,
-        address_constructor=sq_coords,
+    # No out of the board indices filter needed because it is already controlled.
+    piece_row = [(x_pos, sq_index[1]) for x_pos in range(8)]
+    piece_col = [(sq_index[0], y_pos) for y_pos in range(8)]
+    return (
+        sliding_address_filter(
+            constructor=sq_index, to_filter=piece_row, occupied_squares=occupied_squares
+        ),
+        sliding_address_filter(
+            constructor=sq_index, to_filter=piece_col, occupied_squares=occupied_squares
+        ),
     )
 
 
-def QuadrantalAddress(
-    sq_coords: Tuple[int, int], occupied_squares: Dict[Tuple[int, int], str]
-) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+def diagonal_sliding_address(
+    sq_index: Tuple[INT_RANGE, INT_RANGE],
+    occupied_squares: Dict[Tuple[INT_RANGE, INT_RANGE], str],
+) -> Tuple[
+    List[Tuple[INT_RANGE, INT_RANGE] | None], List[Tuple[INT_RANGE, INT_RANGE] | None]
+]:
     """
-    Gives the general locations of a bishop/queen movement.
+    Creates a general movable locations of a bishop/queen.
 
-    Args:
-        sq_coords: Tuple[int, int] : A location on the board.
-        occupied_square: Dict[Tuple[int, int], str] : The dictionary containing all
-        the occupied squares on the board mapped to the piece type.
+    Takes in a sq_index and creates all possible locations a bishop/queen on that given sq_index can move to.
+    OR
+    An opponent bishop/queen on the created locations can attack the provided sq_index.
 
-    Return:
-        Tuple[List[Tuple[int, int] | None], List[Tuple[int, int] | None]] : Gives 2 lists:
-        1. All locations on the same anti-diagonal as the given sq_coords
-        where a bishop/queen CAN REACH.
-        2. All locations on the same main-diagonal as the given sq_coords
-        where a bishop/queen CAN REACH.
+    Parameters:
+    ----------
+    1. sq_index : Tuple[INT_RANGE, INT_RANGE]
+        A location on the board w.r.t the address is to be made.
+    2. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+
+    Returns:
+    -------
+    Tuple[
+    List[Tuple[INT_RANGE, INT_RANGE] | None], List[Tuple[INT_RANGE, INT_RANGE] | None]
+    ] :\n
+        Creates two lists :\n
+        1. List1 : All the reachable squares in the same anti-diagonal as the bishop/queen.\n
+                OR\n
+                An opponent rook/queen on the created locations can attack the provided sq_index.\n
+        2. List2 : All the reachable squares in the same main-diagonal as the bishop/queen.\n
+                OR\n
+                An opponent rook/queen on the created locations can attack the provided sq_index.
     """
-    anti_diagonal_address = [
-        (sq_coords[0] + step, sq_coords[1] - step)
+    piece_diagonal1 = [
+        (sq_index[0] + step, sq_index[1] - step)
         for step in range(-7, 8)
-        if sq_coords[0] + step in range(8) and sq_coords[1] - step in range(8)
+        if sq_index[0] + step in range(8) and sq_index[1] - step in range(8)
     ]
-    main_diagonal_address = [
-        (sq_coords[0] + step, sq_coords[1] + step)
+    piece_diagonal2 = [
+        (sq_index[0] + step, sq_index[1] + step)
         for step in range(-7, 8)
-        if sq_coords[0] + step in range(8) and sq_coords[1] + step in range(8)
+        if sq_index[0] + step in range(8) and sq_index[1] + step in range(8)
     ]
-    return SlidingAddressFilter(
-        to_filter=anti_diagonal_address,
-        occupied_squares=occupied_squares,
-        address_constructor=sq_coords,
-    ), SlidingAddressFilter(
-        to_filter=main_diagonal_address,
-        occupied_squares=occupied_squares,
-        address_constructor=sq_coords,
+    return (
+        sliding_address_filter(
+            constructor=sq_index,
+            to_filter=piece_diagonal1,
+            occupied_squares=occupied_squares,
+        ),
+        sliding_address_filter(
+            constructor=sq_index,
+            to_filter=piece_diagonal2,
+            occupied_squares=occupied_squares,
+        ),
     )
 
 
-class Attacked:
-    """Checks if the given square is attacked by the specified pieces."""
+class IsAttacked:
+    """
+    This class determines if a given square or the king is attacked by any opponent pieces on the chessboard.
+
+    Attributes:
+    ----------
+    1. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+    2. white_king_location : Tuple[INT_RANGE, INT_RANGE]
+        The location of the white king.
+    3. black_king_location : Tuple[INT_RANGE, INT_RANGE]
+        The location of the black king.
+    """
 
     def __init__(
-        self,
-        occupied_squares: Dict[Tuple[int, int], str],
+        self, occupied_squares: Dict[Tuple[INT_RANGE, INT_RANGE], str]
     ) -> None:
-        self.occupied_squares = occupied_squares
-        # NOTE: Line 114 and 320 are affected by the list type of the variables,
-        # so type conversion to a tuple has been done to correct the error.
-        self.WKing_location = [4, 7]
-        self.BKing_location = [0, 7]
+        """
+        Initializes an IsAttacked object.
 
-    def AttackedByNonSlidingPieces(
-        self, location_to_check: Tuple[int, int], move_count: int
+        Parameters:
+        ----------
+        1. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+            A dictionary of all the occupied squares mapped to the piece occupying that square.
+        """
+        self.occupied_squares = occupied_squares
+        self.white_king_location = (4, 7)
+        self.black_king_location = (4, 0)
+
+    def attacked_by_non_sliding_pieces(
+        self, location_to_check: Tuple[INT_RANGE, INT_RANGE], move_count: int
     ) -> bool:
         """
-        Checks if the given location_to_check is attacked by a
-        pawn or a knight.
+        Checks if the provided location_to_check is attacked by a pawn or a knight.
 
-        Args:
-            location_to_check: Tuple[int, int] : The board coord to be check for
-            if it is attacked.
-            move_count: int : The move number currently going on.
+        Takes the location_to_check and creates all valid addresses and then checks for
+        attacking piece in them.
 
-        Return:
-            bool : Gives True if the given location_to_check is attacked by
-            a pawn or a knight.
+        Parameters:
+        ----------
+        1. location_to_check : Tuple[INT_RANGE, INT_RANGE]
+            A location on the board that has to be checked.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        bool :
+            True if the provided location_to_check is attacked by a pawn or a knight.
         """
-        opponent_color = "B" if move_count % 2 == 0 else "W"
-        from_pawn_attacking = PawnAddress(
-            sq_coords=location_to_check, move_count=move_count
+        sq_pawn_attacking = pawn_address(
+            sq_index=location_to_check, move_count=move_count
         )[1]
-        from_knight_attacking = KnightAddress(sq_coords=location_to_check)
+        sq_knight_attacking = knight_address(sq_index=location_to_check)
+        opponent_color = "B" if move_count % 2 == 0 else "W"
         return any(
             self.occupied_squares.get(locations) == f"{opponent_color}Pawn"
-            for locations in from_pawn_attacking
+            for locations in sq_pawn_attacking
         ) or any(
             self.occupied_squares.get(locations) == f"{opponent_color}Knight"
-            for locations in from_knight_attacking
+            for locations in sq_knight_attacking
         )
 
-    def AttackedBySlidingPieces(
-        self, location_to_check: Tuple[int, int], move_count: int
+    def attacked_by_sliding_pieces(
+        self, location_to_check: Tuple[INT_RANGE, INT_RANGE], move_count: int
     ) -> bool:
         """
-        Checks if the given location_to_check is attacked by a
-        rook or a bishop or a queen.
+        Checks if the provided location_to_check is attacked by a rook or a bishop or a queen.
 
-        Args:
-            location_to_check: Tuple[int, int] : The board coord to be check for
-            if it is attacked.
-            move_count: int : The move number currently going on.
+        Takes the location_to_check and creates all valid addresses and then checks for
+        attacking piece in them.
 
-        Return:
-            bool : Gives True if the given location_to_check is attacked by a
-            rook or a bishop or a queen..
+        Parameters:
+        ----------
+        1. location_to_check : Tuple[INT_RANGE, INT_RANGE]
+            A location on the board that has to be checked.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        bool :
+            True if the provided location_to_check is attacked by a rook or a bishop or a queen.
         """
-        opponent_color = "B" if move_count % 2 == 0 else "W"
-        from_x_address, from_y_address = AxialAddress(
-            sq_coords=location_to_check, occupied_squares=self.occupied_squares
+        piece_row, piece_col = straight_sliding_address(
+            sq_index=location_to_check, occupied_squares=self.occupied_squares
         )
-        from_13_address, from_24_address = QuadrantalAddress(
-            sq_coords=location_to_check, occupied_squares=self.occupied_squares
+        piece_diagonal1, piece_diagonal2 = diagonal_sliding_address(
+            sq_index=location_to_check, occupied_squares=self.occupied_squares
         )
         # The if-else used to correct the indexation error in empty address(if empty address was created).
-        from_axial_attacking, from_quadrantal_attacking = (
-            ((from_x_address[0], from_x_address[-1]) if from_x_address else ())
-            + ((from_y_address[0], from_y_address[-1]) if from_y_address else ()),
-            ((from_13_address[0], from_13_address[-1]) if from_13_address else ())
-            + ((from_24_address[0], from_24_address[-1]) if from_24_address else ()),
+        sq_straight_sliding_attacking, sq_diagonal_sliding_attacking = (
+            ((piece_row[0], piece_row[-1]) if piece_row else ())
+            + ((piece_col[0], piece_col[-1]) if piece_col else ()),
+            ((piece_diagonal1[0], piece_diagonal1[-1]) if piece_diagonal1 else ())
+            + ((piece_diagonal2[0], piece_diagonal2[-1]) if piece_diagonal2 else ()),
         )
+        opponent_color = "B" if move_count % 2 == 0 else "W"
         return any(
             self.occupied_squares.get(locations)
             in [f"{opponent_color}Rook", f"{opponent_color}Queen"]
-            for locations in from_axial_attacking
+            for locations in sq_straight_sliding_attacking
         ) or any(
             self.occupied_squares.get(locations)
             in [f"{opponent_color}Bishop", f"{opponent_color}Queen"]
-            for locations in from_quadrantal_attacking
+            for locations in sq_diagonal_sliding_attacking
         )
 
-    # Separated AttackedByKing as in some cases it is not needed.
-    def AttackedByKing(
-        self, location_to_check: Tuple[int, int], move_count: int
+    def attacked_by_king(
+        self, location_to_check: Tuple[INT_RANGE, INT_RANGE], move_count: int
     ) -> bool:
         """
-        Checks if the given location_to_check is attacked by a
-        king.
+        Checks if the provided location_to_check is attacked by a king.
 
-        Args:
-            location_to_check: Tuple[int, int] : The board coord to be check for
-            if it is attacked.
-            move_count: int : The move number currently going on.
+        Takes the location_to_check and creates all valid addresses and then checks for
+        attacking piece in them.
 
-        Return:
-            bool : Gives True if the given location_to_check is attacked by a
-            king.
+        Parameters:
+        ----------
+        1. location_to_check : Tuple[INT_RANGE, INT_RANGE]
+            A location on the board that has to be checked.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        bool :
+            True if the provided location_to_check is attacked by a king.
         """
         opponent_color = "B" if move_count % 2 == 0 else "W"
-        from_king_attacking = KingAddress(sq_coords=location_to_check)
+        from_king_attacking = king_address(sq_index=location_to_check)
         return any(
             self.occupied_squares.get(locations) == f"{opponent_color}King"
             for locations in from_king_attacking
         )
 
-    # Attacked by king is excluded as kings can't attack
-    # other kings.
-    def IsOwnKingAttacked(self, move_count: int) -> bool:
+    def is_own_king_attacked(self, move_count: int) -> bool:
         """
-        Checks if the current player's king is attacked by
-        any piece other that king.
+        Checks if the king of the current side is attacked.
 
-        Args:
-            move_count: int : The move number currently going on.
+        Takes the move count to determine the side and check if the king of that side is attacked.
 
-        Return:
-            bool : Gives True if the player's king is attacked by
-            any piece other than king.
+        Parameters:
+        ----------
+        1. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        bool :
+            True if the king of the current side is attacked by every piece other than a king.
         """
-        own_color = "W" if move_count % 2 == 0 else "B"
         king_location = (
-            self.WKing_location if own_color == "White" else self.BKing_location
+            self.white_king_location
+            if move_count % 2 == 0
+            else self.black_king_location
         )
-        if self.occupied_squares.get(tuple(king_location)) != f"{own_color}King":
-            for location, piece_type in self.occupied_squares.items():
-                if piece_type == f"{own_color}King":
-                    king_location[:] = location
-        return self.AttackedByNonSlidingPieces(
+        own_color = "W" if move_count % 2 == 0 else "B"
+        # Check if the current king location is in consistent with the actual data.
+        # If not then it corrects it.
+        # Done like this to save computation.
+        if self.occupied_squares.get(king_location) != f"{own_color}King":
+            for locations in self.occupied_squares:
+                if self.occupied_squares[locations] == f"{own_color}King":
+                    king_location = locations
+                    if own_color == "W":
+                        self.white_king_location = locations
+                    else:
+                        self.black_king_location = locations
+                    break
+        return self.attacked_by_non_sliding_pieces(
             location_to_check=king_location, move_count=move_count
-        ) or self.AttackedBySlidingPieces(
+        ) or self.attacked_by_sliding_pieces(
             location_to_check=king_location, move_count=move_count
         )
 
 
-class MoveAddress(Attacked):
-    """Class Creates all the possible valid moves of a piece."""
+class MoveList(IsAttacked):
+    """
+    This class determines all the possible locations that a piece on the provided square
+    can move to.
 
-    def __init__(self, occupied_squares: Dict[Tuple[int], str]) -> None:
-        super().__init__(occupied_squares)
+    Attributes:
+    ----------
+    1. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+    2. white_king_location : Tuple[INT_RANGE, INT_RANGE]
+        The location of the white king.
+    3. black_king_location : Tuple[INT_RANGE, INT_RANGE]
+        The location of the black king.
+    4. white_short_castle : bool
+        The right of wether the white side can castle short.
+    5. white_long_castle : bool
+        The right of wether the white side can castle long.
+    6. black_short_castle : bool
+        The right of wether the black side can castle short.
+    7. black_long_castle : bool
+        The right of wether the black side can castle long.
+    """
 
-    def SquaresThatPutKingInCheckRemover(
+    def __init__(
+        self, occupied_squares: Dict[Tuple[INT_RANGE, INT_RANGE], str]
+    ) -> None:
+        """
+        Initializes an MoveList object.
+
+        Parameters:
+        ----------
+        1. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+            A dictionary of all the occupied squares mapped to the piece occupying that square.
+        """
+        self.white_short_castle = self.white_long_castle = True
+        self.black_short_castle = self.black_long_castle = True
+        super().__init__(occupied_squares=occupied_squares)
+
+    def squares_that_put_king_in_check_remover(
         self,
-        piece_coords: Tuple[int, int],
-        to_filter: List[Tuple[int, int] | None],
+        piece_location: Tuple[INT_RANGE, INT_RANGE],
+        to_filter: List[Tuple[INT_RANGE, INT_RANGE] | None],
         move_count: int,
-    ) -> List[Tuple[int, int] | None]:
+    ) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
         """
-        Filter all squares out to which the piece on given piece_coords moves
-        to puts their own king in check.
+        Filters out all the squares that put king in check.
 
-        Args:
-            piece_coords: Tuple[int, int] : The location of the pawn piece to
-            be modified.
-            to_filter: List[Tuple[int, int] | None] : The list of all moveable locations of
-            given piece on piece_coords.
-            move_count: int : The move number currently going on.
+        The functions removes all the squares to which the piece on the provided piece_location
+        if moves to puts their own king in check.
 
-        Return:
-            List[Tuple[int, int] | None] : All the filtered locations.
+        Parameters:
+        ----------
+        1. piece_location : Tuple[INT_RANGE, INT_RANGE]
+            A location of the piece w.r.t the to_filter was made.
+        2. to_filter : List[Tuple[INT_RANGE, INT_RANGE] | None]
+            A address that was made w.r.t piece_location.
+        3. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        List[Tuple[INT_RANGE, INT_RANGE] | None] :
+            A single list of all the possible squares that piece on the provided piece_location
+            can finally move to.
         """
-        occupied_square_cache = self.occupied_squares.copy()
-        piece_on_coords = self.occupied_squares[piece_coords]
-        for locations in to_filter[:]:
-            self.occupied_squares.pop(piece_coords)
-            self.occupied_squares[locations] = piece_on_coords
-            if self.IsOwnKingAttacked(move_count=move_count):
-                to_filter.remove(locations)
-            self.occupied_squares = occupied_square_cache.copy()
+        occupied_squares_cache = self.occupied_squares.copy()
+        piece_present = self.occupied_squares[piece_location]
+        for location in to_filter[:]:
+            self.occupied_squares.pop(piece_location)
+            self.occupied_squares[location] = piece_present
+            if self.is_own_king_attacked(move_count=move_count):
+                to_filter.remove(location)
+            self.occupied_squares = occupied_squares_cache.copy()
         return to_filter
 
-    def PawnMoveAddress(
-        self, piece_coords: Tuple[int, int], move_count: int
-    ) -> List[Tuple[int, int] | None]:
+    def pawn_move_list(
+        self, piece_location: Tuple[INT_RANGE, INT_RANGE], move_count: int
+    ) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
         """
-        Creates all possible locations a pawn can move to.
+        Creates all the possible locations a piece on provided piece_location can move to.
 
-        Args:
-            piece_coords: Tuple[int, int] : The location of the pawn piece to
-            be modified.
-            move_count: int : The move number currently going on.
+        The general address of a pawn is filtered to remove squares holding the same side piece,
+        squares that put the king in check and finally gives the list of locations a pawn on the
+        provided piece_location can move to.
 
-        Return:
-            List[Tuple[int, int] | None] : Gives all the possible squares a pawn on given
-            piece_coords can move to.
+        Parameters:
+        ----------
+        1. piece_location : Tuple[INT_RANGE, INT_RANGE]
+            A location of the piece w.r.t the address is to be made.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        List[Tuple[INT_RANGE, INT_RANGE] | None] :
+            A final list of locations that a pawn on the provided sq_index can move to.
         """
         own_color = "W" if move_count % 2 == 0 else "B"
-        moving_address, capturing_address = PawnAddress(
-            sq_coords=piece_coords, move_count=move_count
+        moving_list, capturing_list = pawn_address(
+            sq_index=piece_location, move_count=move_count
         )
-        if not moving_address:
-            pass
-        elif moving_address[0] in self.occupied_squares:
-            moving_address.clear()
-        elif moving_address[1] in self.occupied_squares or not (
-            (piece_coords[1] == 6 and own_color == "W")
-            or (piece_coords[1] == 1 and own_color == "B")
+        if moving_list[0] in self.occupied_squares:
+            moving_list.clear()
+        elif moving_list[1] in self.occupied_squares or not (
+            (piece_location[1] == 6 and own_color == "W")
+            or (piece_location[1] == 1 and own_color == "B")
         ):
-            moving_address.pop(1)
-        for locations in capturing_address[:]:
-            if (
-                locations not in self.occupied_squares
-                or self.occupied_squares[locations][0] == own_color
-            ):
-                capturing_address.remove(locations)
-        return self.SquaresThatPutKingInCheckRemover(
-            piece_coords=piece_coords,
-            to_filter=moving_address,
-            move_count=move_count,
-        ) + self.SquaresThatPutKingInCheckRemover(
-            piece_coords=piece_coords,
-            to_filter=capturing_address,
-            move_count=move_count,
-        )
-
-    def KnightMoveAddress(
-        self, piece_coords: Tuple[int, int], move_count: int
-    ) -> List[Tuple[int, int] | None]:
-        """
-        Creates all possible locations a knight can move to.
-
-        Args:
-            piece_coords: Tuple[int, int] : The location of the knight piece to
-            be modified.
-            move_count: int : The move number currently going on.
-
-        Return:
-            List[Tuple[int, int] | None] : Gives all the possible squares a knight on given
-            piece_coords can move to.
-        """
-        own_color = "W" if move_count % 2 == 0 else "B"
-        move_address = KnightAddress(sq_coords=piece_coords)
-        for locations in move_address[:]:
-            if (
-                locations in self.occupied_squares
-                and self.occupied_squares[locations][0] == own_color
-            ):
-                move_address.remove(locations)
-        return self.SquaresThatPutKingInCheckRemover(
-            piece_coords=piece_coords,
-            to_filter=move_address,
-            move_count=move_count,
-        )
-
-    # Not used the  self.SquaresThatPutKingInCheckRemover because,
-    # it is not needed and produces unexpected results.
-    def KingMoveAddress(
-        self, piece_coords: Tuple[int, int], move_count: int
-    ) -> List[Tuple[int, int] | None]:
-        """
-        Creates all possible locations a king can move to.
-
-        Args:
-            piece_coords: Tuple[int, int] : The location of the king piece to
-            be modified.
-            move_count: int : The move number currently going on.
-
-        Return:
-            List[Tuple[int, int] | None] : Gives all the possible squares a king on given
-            piece_coords can move to.
-        """
-        own_color = "W" if move_count % 2 == 0 else "B"
-        move_address = KingAddress(sq_coords=piece_coords)
-        for locations in move_address[:]:
-            if (
-                (
-                    locations in self.occupied_squares
-                    and self.occupied_squares[locations][0] == own_color
-                )
-                or self.AttackedByKing(
-                    location_to_check=locations, move_count=move_count
-                )
-                or self.AttackedByNonSlidingPieces(
-                    location_to_check=locations, move_count=move_count
-                )
-                or self.AttackedBySlidingPieces(
-                    location_to_check=locations, move_count=move_count
-                )
-            ):
-                move_address.remove(locations)
-        return move_address
-
-    def SlidingAddressMaker(
-        self,
-        piece_coords: Tuple[int, int],
-        move_count: int,
-        piece_type: Literal["Ax", "Qu"],
-    ) -> List[Tuple[int, int] | None]:
-        """
-        Creates all possible locations a pawn can move to.
-
-        Args:
-            piece_coords: Tuple[int, int] : The location of the pawn piece to
-            be modified.
-            move_count: int : The move number currently going on.
-            piece_type: Literal["Ax", "Qu"] : If the piece is straight moving["Ax"] or
-            diagonal moving["Qu"]
-
-        Return:
-            List[Tuple[int, int] | None] : Gives all the possible squares a pawn on given
-            piece_coords can move to.
-        """
-        own_color = "W" if move_count % 2 == 0 else "B"
-        address1, address2 = (
-            AxialAddress(sq_coords=piece_coords, occupied_squares=self.occupied_squares)
-            if piece_type == "Ax"
-            else QuadrantalAddress(
-                sq_coords=piece_coords, occupied_squares=self.occupied_squares
+            moving_list.pop(1)
+        capturing_list = list(
+            filter(
+                lambda locations: locations in self.occupied_squares
+                and self.occupied_squares[locations][0] != own_color,
+                capturing_list,
             )
         )
-        for addresses in [address1, address2]:
-            for location_index in [0, -1]:
-                if not addresses:
-                    continue
-                if (
-                    addresses[location_index] in self.occupied_squares
-                    and self.occupied_squares[addresses[location_index]][0] == own_color
-                ):
-                    addresses.pop(location_index)
-        return self.SquaresThatPutKingInCheckRemover(
-            piece_coords=piece_coords,
-            to_filter=address1,
+        return self.squares_that_put_king_in_check_remover(
+            piece_location=piece_location, to_filter=moving_list, move_count=move_count
+        ) + self.squares_that_put_king_in_check_remover(
+            piece_location=piece_location,
+            to_filter=capturing_list,
             move_count=move_count,
-        ) + self.SquaresThatPutKingInCheckRemover(
-            piece_coords=piece_coords,
-            to_filter=address2,
+        )
+
+    def knight_move_list(
+        self, piece_location: Tuple[INT_RANGE, INT_RANGE], move_count: int
+    ) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
+        """
+        Creates all the possible locations a piece on provided piece_location can move to.
+
+        The general address of a knight is filtered to remove squares holding the same side piece,
+        squares that put the king in check and finally gives the list of locations a knight on the
+        provided piece_location can move to.
+
+        Parameters:
+        ----------
+        1. piece_location : Tuple[INT_RANGE, INT_RANGE]
+            A location of the piece w.r.t the address is to be made.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        List[Tuple[INT_RANGE, INT_RANGE] | None] :
+            A final list of locations that a knight on the provided sq_index can move to.
+        """
+        own_color = "W" if move_count % 2 == 0 else "B"
+        move_list = knight_address(sq_index=piece_location)
+        move_list = list(
+            filter(
+                lambda locations: locations not in self.occupied_squares
+                or self.occupied_squares[locations][0] != own_color,
+                move_list,
+            )
+        )
+        return self.squares_that_put_king_in_check_remover(
+            piece_location=piece_location, to_filter=move_list, move_count=move_count
+        )
+
+    def king_move_list(
+        self, piece_location: Tuple[INT_RANGE, INT_RANGE], move_count: int
+    ) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
+        """
+        Creates all the possible locations a piece on provided piece_location can move to.
+
+        The general address of a king is filtered to remove squares holding the same side piece,
+        squares that put the king in check and finally gives the list of locations a king on the
+        provided piece_location can move to.
+
+        Parameters:
+        ----------
+        1. piece_location : Tuple[INT_RANGE, INT_RANGE]
+            A location of the piece w.r.t the address is to be made.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        List[Tuple[INT_RANGE, INT_RANGE] | None] :
+            A final list of locations that a king on the provided sq_index can move to.
+        """
+
+        def castle_move_list_maker(
+            move_count: int,
+        ) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
+            """
+            Creates those location where king moves to in a castle.
+
+            Creates the general move_list and then filters it out according to the
+            conditions of castling.
+
+            Parameters:
+            ----------
+            1. move_count : int
+                The move number going on.
+
+            Returns:
+            -------
+            List[Tuple[INT_RANGE, INT_RANGE] | None] :
+                A list of locations where the king can possibly castle to.
+            """
+            castle_table = {
+                "W": {
+                    (6, 7): [[(5, 7), (6, 7)], [(4, 7), (5, 7), (6, 7)]],
+                    (2, 7): [[(3, 7), (2, 7), (1, 7)], [(4, 7), (3, 7), (2, 7)]],
+                },
+                "B": {
+                    (6, 0): [[(5, 0), (6, 0)], [(4, 0), (5, 0), (6, 0)]],
+                    (2, 0): [[(3, 0), (2, 0), (1, 0)], [(4, 0), (3, 0), (2, 0)]],
+                },
+            }
+            short_right, long_right = (
+                (self.white_short_castle, self.white_long_castle)
+                if move_count % 2 == 0
+                else (
+                    self.black_short_castle,
+                    self.black_long_castle,
+                )
+            )
+            own_color = "W" if move_count % 2 == 0 else "B"
+            row = 7 if move_count % 2 == 0 else 0
+            move_list = [(6, row), (2, row)]
+            if not short_right:
+                move_list.pop(0)
+            if not long_right:
+                move_list.pop(-1)
+            castle_data = castle_table[own_color]
+            for locations in move_list[:]:
+                castle_type_data = castle_data[locations]
+                if any(
+                    squares in self.occupied_squares for squares in castle_type_data[0]
+                ) or any(
+                    self.attacked_by_king(
+                        location_to_check=squares, move_count=move_count
+                    )
+                    or self.attacked_by_non_sliding_pieces(
+                        location_to_check=squares, move_count=move_count
+                    )
+                    or self.attacked_by_sliding_pieces(
+                        location_to_check=squares, move_count=move_count
+                    )
+                    for squares in castle_type_data[1]
+                ):
+                    move_list.remove(locations)
+            return move_list
+
+        own_color = "W" if move_count % 2 == 0 else "B"
+        move_list = king_address(sq_index=piece_location)
+        move_list = list(
+            filter(
+                lambda locations: (
+                    locations not in self.occupied_squares
+                    or self.occupied_squares[locations][0] != own_color
+                )
+                and not self.attacked_by_king(
+                    location_to_check=locations, move_count=move_count
+                )
+                and not self.attacked_by_non_sliding_pieces(
+                    location_to_check=locations, move_count=move_count
+                )
+                and not self.attacked_by_sliding_pieces(
+                    location_to_check=locations, move_count=move_count
+                ),
+                move_list,
+            )
+        )
+        return move_list + castle_move_list_maker(move_count=move_count)
+
+    def sliding_pieces_move_list(
+        self,
+        piece_location: Tuple[INT_RANGE, INT_RANGE],
+        move_count: int,
+        piece_type: Literal["s", "d"],
+    ) -> List[Tuple[INT_RANGE, INT_RANGE] | None]:
+        """
+        Creates all the possible locations a piece on provided piece_location can move to.
+
+        The general address of a rook/queen/bishop is filtered to remove squares holding the same side piece,
+        squares that put the king in check and finally gives the list of locations a rook/queen/bishop on the
+        provided piece_location can move to.
+
+        Parameters:
+        ----------
+        1. piece_location : Tuple[INT_RANGE, INT_RANGE]
+            A location of the piece w.r.t the address is to be made.
+        2. move_count : int
+            The move number going on.
+
+        Returns:
+        -------
+        List[Tuple[INT_RANGE, INT_RANGE] | None] :
+            A final list of locations that a rook/queen/bishop on the provided sq_index can move to.
+        """
+        own_color = "W" if move_count % 2 == 0 else "B"
+        move_list1, move_list2 = (
+            straight_sliding_address(
+                sq_index=piece_location, occupied_squares=self.occupied_squares
+            )
+            if piece_type == "s"
+            else diagonal_sliding_address(
+                sq_index=piece_location, occupied_squares=self.occupied_squares
+            )
+        )
+        move_list1, move_list2 = list(
+            filter(
+                lambda locations: locations not in self.occupied_squares
+                or self.occupied_squares[locations][0] != own_color,
+                move_list1,
+            )
+        ), list(
+            filter(
+                lambda locations: locations not in self.occupied_squares
+                or self.occupied_squares[locations][0] != own_color,
+                move_list2,
+            )
+        )
+        return self.squares_that_put_king_in_check_remover(
+            piece_location=piece_location,
+            to_filter=move_list1,
+            move_count=move_count,
+        ) + self.squares_that_put_king_in_check_remover(
+            piece_location=piece_location,
+            to_filter=move_list2,
             move_count=move_count,
         )
 
 
-class Main(MoveAddress):
+class Main(MoveList):
     """
-    The main class that interfaces with the user.
+    This class is the main class that interfaces with the user input.
+
+    Attributes:
+    ----------
+    1. occupied_squares : Dict[Tuple[INT_RANGE, INT_RANGE], str]
+        A dictionary of all the occupied squares mapped to the piece occupying that square.
+    2. white_king_location : Tuple[INT_RANGE, INT_RANGE]
+        The location of the white king.
+    3. black_king_location : Tuple[INT_RANGE, INT_RANGE]
+        The location of the black king.
+    4. move_count : int
+        The current move number going on.
+    5. white_short_castle : bool
+        The right of wether the white side can castle short.
+    6. white_long_castle : bool
+        The right of wether the white side can castle long.
+    7. black_short_castle : bool
+        The right of wether the black side can castle short.
+    8. black_long_castle : bool
+        The right of wether the black side can castle long.
+    9. move_list : List[Tuple[INT_RANGE, INT_RANGE] | None]
+        The locations of possible movable locations of a given piece.
     """
 
     def __init__(self) -> None:
+        """
+        Initializes an Main object.
+        """
         self.occupied_squares = {
             (0, 6): "WPawn",
             (1, 6): "WPawn",
@@ -572,57 +856,60 @@ class Main(MoveAddress):
             (4, 0): "BKing",
         }
         self.move_count = 0
-        self.move_address = []
+        self.move_list = []
+        self.move_list_mapping_table = {
+            "Pawn": lambda location, move_count: self.pawn_move_list(
+                piece_location=location, move_count=move_count
+            ),
+            "Rook": lambda location, move_count: self.sliding_pieces_move_list(
+                piece_location=location,
+                move_count=move_count,
+                piece_type="s",
+            ),
+            "Knight": lambda location, move_count: self.knight_move_list(
+                piece_location=location, move_count=move_count
+            ),
+            "Bishop": lambda location, move_count: self.sliding_pieces_move_list(
+                piece_location=location,
+                move_count=move_count,
+                piece_type="d",
+            ),
+            "Queen": lambda location, move_count: self.sliding_pieces_move_list(
+                piece_location=location,
+                move_count=move_count,
+                piece_type="s",
+            )
+            + self.sliding_pieces_move_list(
+                piece_location=location,
+                move_count=move_count,
+                piece_type="d",
+            ),
+            "King": lambda location, move_count: self.king_move_list(
+                piece_location=location, move_count=move_count
+            ),
+        }
         super().__init__(occupied_squares=self.occupied_squares)
-        pieces = ["Pawn", "Rook", "Knight", "Bishop", "Queen", "King"]
-        self.loaded_images = []
-        img_size = 65, 65
-        for side in "WB":
-            for piece_type in pieces:
-                path = f"Assets\\Pieces\\{side}Pieces\\{side}{piece_type}.png"
-                image = pygame.image.load(path)
-                self.loaded_images.append(pygame.transform.scale(image, img_size))
 
-    def Logic(self, mouse_grid_pos: Tuple[int, int]) -> None:
+    def logic(self, mouse_grid_pos: Tuple[INT_RANGE, INT_RANGE]) -> None:
         """
-        Generates appropriate possible moves of the piece on the
-        given mouse grid pos.
+        This function takes in a user click pos and creates appropriate move list.
 
-        Args:
-            mouse_grid_pos: Tuple[int, int] : The grid location of the user click.
+        Takes the user click pos and determines if the click is valid to act upon,
+        if yes then then creates the appropriate move_list else the click is ignored.
 
-        Return:
-            None : None
+        Parameters:
+        ----------
+        1. mouse_grid_pos: Tuple[INT_RANGE, INT_RANGE]
+            The click of them user mapped to a certain square on the board.
         """
+
         own_color = "W" if self.move_count % 2 == 0 else "B"
         if (
             mouse_grid_pos not in self.occupied_squares
             or self.occupied_squares[mouse_grid_pos][0] != own_color
         ):
-            self.move_address = []
-        elif self.occupied_squares[mouse_grid_pos][1:] == "Pawn":
-            self.move_address = self.PawnMoveAddress(
-                piece_coords=mouse_grid_pos, move_count=self.move_count
-            )
-        elif self.occupied_squares[mouse_grid_pos][1:] == "Knight":
-            self.move_address = self.KnightMoveAddress(
-                piece_coords=mouse_grid_pos, move_count=self.move_count
-            )
-        elif self.occupied_squares[mouse_grid_pos][1:] == "King":
-            self.move_address = self.KingMoveAddress(
-                piece_coords=mouse_grid_pos, move_count=self.move_count
-            )
-        elif self.occupied_squares[mouse_grid_pos][1:] == "Rook":
-            self.move_address = self.SlidingAddressMaker(
-                piece_coords=mouse_grid_pos, move_count=self.move_count, piece_type="Ax"
-            )
-        elif self.occupied_squares[mouse_grid_pos][1:] == "Bishop":
-            self.move_address = self.SlidingAddressMaker(
-                piece_coords=mouse_grid_pos, move_count=self.move_count, piece_type="Qu"
-            )
-        elif self.occupied_squares[mouse_grid_pos][1:] == "Queen":
-            self.move_address = self.SlidingAddressMaker(
-                piece_coords=mouse_grid_pos, move_count=self.move_count, piece_type="Ax"
-            ) + self.SlidingAddressMaker(
-                piece_coords=mouse_grid_pos, move_count=self.move_count, piece_type="Qu"
-            )
+            self.move_list = []
+        else:
+            self.move_list = self.move_list_mapping_table[
+                self.occupied_squares[mouse_grid_pos][1:]
+            ](location=mouse_grid_pos, move_count=self.move_count)
