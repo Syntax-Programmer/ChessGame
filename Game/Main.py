@@ -260,7 +260,8 @@ pygame.display.set_caption("Chess Game")
 timer = pygame.time.Clock()
 FPS = 120
 
-FONT_TYPE = pygame.font.Font("Assets\\Font\\JetBrainsMono.ttf", 50)
+# Font is initialized as it needs pygame to initialized.
+FONT_TYPE = pygame.font.Font(f"Assets{AssetsLoader.directory_path_separator}Font{AssetsLoader.directory_path_separator}JetBrainsMono.ttf", 50)
 
 BLACK = (0, 0, 0)
 BOARD_IMG_POS = 0, 0
